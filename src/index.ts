@@ -22,6 +22,7 @@ import { Command } from 'commander';
 
 import { Answers, Question } from 'inquirer';
 import { DeploymentManager, IDeploymentManager } from './deploymentmanager';
+import DeployUI from './deployui';
 import { Questions, IQuestions } from './questions';
 import { IK8sManager, K8sManager } from './k8smanager';
 import { Config } from './config';
@@ -49,8 +50,8 @@ const invalidUsernameMessage = 'Usernames can be a maximum of 20 characters in l
 const invalidPasswordMessage = 'The supplied password must be between 12-72 characters long and must satisfy at least 3 of password complexity requirements from the following: 1) Contains an uppercase character\n2) Contains a lowercase character\n3) Contains a numeric digit\n4) Contains a special character\n5) Control characters are not allowed';
 /* tslint:enable */
 
-const gitHubUrl: string = 'https://github.com/Azure/pcs-cli#azure-iot-pcs-cli';
-const gitHubIssuesUrl: string = 'https://github.com/azure/azure-remote-monitoring-cli/issues/new';
+const gitHubUrl: string = 'https://github.com/Azure/pcs-cli';
+const gitHubIssuesUrl: string = 'https://github.com/azure/pcs-cli/issues/new';
 
 const pcsTmpDir: string = os.homedir() + path.sep + '.pcs';
 const cacheFilePath: string = pcsTmpDir + path.sep + 'cache.json';
@@ -118,6 +119,7 @@ if (!program.args[0] || program.args[0] === '-t') {
     logout();
 } else {
     console.log(`${chalk.red('Invalid choice:', program.args.toString())}`);
+    console.log('For help, %s', `${chalk.yellow('pcs -h')}`);
 }
 
 function main() {
@@ -143,7 +145,7 @@ function main() {
         console.log('Please run %s', `${chalk.yellow('pcs login')}`);
     } else {
         const baseUri = cachedAuthResponse.options.environment.resourceManagerEndpointUrl;
-        let client = new SubscriptionClient(new DeviceTokenCredentials(cachedAuthResponse.options), baseUri);
+        const client = new SubscriptionClient(new DeviceTokenCredentials(cachedAuthResponse.options), baseUri);
         return client.subscriptions.list()
         .then(() => {
             const subs: ChoiceType[] = [];
@@ -165,6 +167,8 @@ function main() {
                     type: 'list'
                 });
 
+                const deployUI = DeployUI.instance;
+                let deploymentManager: IDeploymentManager;
                 return prompt(questions.value)
                 .then((ans: Answers) => {
                     answers = ans;
@@ -175,16 +179,8 @@ function main() {
                         throw new Error(errorMessage);
                     }
                     cachedAuthResponse.options.domain = cachedAuthResponse.subscriptions[index].tenantId;
-                    client = new SubscriptionClient(new DeviceTokenCredentials(cachedAuthResponse.options), baseUri);
-                    return client.subscriptions.listLocations(answers.subscriptionId)
-                    .then((locationsResult: SubscriptionModels.LocationListResult) => {
-                        const locations: string[] = [];
-                        locationsResult.forEach((location: SubscriptionModels.Location) => {
-                            const name = location.displayName as string;
-                            locations.push(name);
-                        });
-                        return locations;
-                    });
+                    deploymentManager = new DeploymentManager(cachedAuthResponse.options, answers.subscriptionId, solutionType, program.sku);
+                    return deploymentManager.getLocations();
                 })
                 .then((locations: string[]) => {
                     return prompt(getDeploymentQuestions(locations));
@@ -201,19 +197,23 @@ function main() {
                 .then((ans: Answers) => {
                     answers.adminPassword = ans.pwdFirstAttempt;
                     answers.sshFilePath = ans.sshFilePath;
+                    deployUI.start('Registering application in the Azure Active Directory');
                     return createServicePrincipal(answers.azureWebsiteName, answers.subscriptionId, cachedAuthResponse.options);
                 })
-                .then(({appId, servicePrincipalSecret}) => {
+                .then(({appId, domainName, objectId, servicePrincipalSecret}) => {
                     if (appId && servicePrincipalSecret) {
+                        const env = cachedAuthResponse.options.environment;
+                        const appUrl = `${env.portalUrl}/${domainName}#blade/Microsoft_AAD_IAM/ApplicationBlade/objectId/${objectId}/appId/${appId}`;
+                        deployUI.stop({message: `Application registered: ${chalk.cyan(appUrl)} `});
                         cachedAuthResponse.options.tokenAudience = null;
-                        const deploymentManager: IDeploymentManager = 
-                        new DeploymentManager(cachedAuthResponse.options, solutionType);
                         answers.appId = appId;
+                        answers.aadAppUrl = appUrl;
                         answers.deploymentSku = program.sku;
                         answers.servicePrincipalSecret = servicePrincipalSecret;
                         answers.certData = createCertificate();
                         answers.aadTenantId = cachedAuthResponse.options.domain;
                         answers.runtime = program.runtime;
+                        answers.domainName = domainName;
                         return deploymentManager.submit(answers);
                     } else {
                         const message = 'To create a service principal, you must have permissions to register an ' +
@@ -308,7 +308,8 @@ function getCachedAuthResponse(): any {
 }
 
 function createServicePrincipal(azureWebsiteName: string, subscriptionId: string,
-                                options: DeviceTokenCredentialsOptions): Promise<{appId: string, servicePrincipalSecret: string}> {
+                                options: DeviceTokenCredentialsOptions):
+                                Promise<{appId: string, domainName: string, objectId: string, servicePrincipalSecret: string}> {
     const homepage = getWebsiteUrl(azureWebsiteName);
     const graphOptions = options;
     graphOptions.tokenAudience = 'graph';
@@ -351,12 +352,14 @@ function createServicePrincipal(azureWebsiteName: string, subscriptionId: string
         replyUrls,
         requiredResourceAccess
     };
+    let objectId: string = '';
     return graphClient.applications.create(applicationCreateParameters)
     .then((result: any) => {
         const servicePrincipalCreateParameters = {
             accountEnabled: true,
             appId: result.appId
-            };
+        };
+        objectId = result.objectId;
         return graphClient.servicePrincipals.create(servicePrincipalCreateParameters);
     })
     .then((sp: any) => {
@@ -364,14 +367,25 @@ function createServicePrincipal(azureWebsiteName: string, subscriptionId: string
             return sp.appId;
         }
 
-        // Create role assignment only for enterprise since ACS requires it
+        // Create role assignment only for standard deployment since ACS requires it
         return createRoleAssignmentWithRetry(subscriptionId, sp.objectId, sp.appId, options);
     })
     .then((appId: string) => {
-        return {
-            appId,
-            servicePrincipalSecret
-        };
+        return graphClient.domains.list()
+        .then((domains: any[]) => {
+            let domainName: string = '';
+            domains.forEach((value: any) => {
+                if (value.isDefault) {
+                    domainName = value.name;
+                }
+            });
+            return {
+                appId,
+                domainName,
+                objectId,
+                servicePrincipalSecret
+            };
+        });
     })
     .catch((error: Error) => {
         throw error;
@@ -386,7 +400,7 @@ function createRoleAssignmentWithRetry(subscriptionId: string, objectId: string,
     const scope = '/subscriptions/' + subscriptionId; // we shall be assigning the sp, a 'contributor' role at the subscription level
     const roleDefinitionId = scope + '/providers/Microsoft.Authorization/roleDefinitions/' + roleId;
     // clearing the token audience
-    options.tokenAudience = 'common';
+    options.tokenAudience = undefined;
     const baseUri = options.environment ? options.environment.resourceManagerEndpointUrl : undefined;
     const authzClient = new AuthorizationManagementClient(new DeviceTokenCredentials(options), subscriptionId, baseUri);
     const assignmentGuid = uuid.v1();
@@ -400,23 +414,23 @@ function createRoleAssignmentWithRetry(subscriptionId: string, objectId: string,
     };
     let retryCount = 0;
     const promise = new Promise<any>((resolve, reject) => {
-        const timer: NodeJS.Timer = setInterval(() => {
-            retryCount++;
-            return authzClient.roleAssignments.create(scope, assignmentGuid, roleCreateParams)
-            .then((roleResult: any) => {
-                clearInterval(timer);
-                resolve(appId);
-            })
-            .catch ((error: Error) => {
-                if (retryCount >= MAX_RETRYCOUNT) {
+        const timer: NodeJS.Timer = setInterval(
+            () => {
+                retryCount++;
+                return authzClient.roleAssignments.create(scope, assignmentGuid, roleCreateParams)
+                .then((roleResult: any) => {
                     clearInterval(timer);
-                    console.log(error);
-                    reject(error);
-                } else {
-                    console.log(`${chalk.yellow('Retrying role assignment creation:', retryCount.toString(), 'of', MAX_RETRYCOUNT.toString())}`);
-                }
-            });
-        },                                      5000);
+                    resolve(appId);
+                })
+                .catch ((error: Error) => {
+                    if (retryCount >= MAX_RETRYCOUNT) {
+                        clearInterval(timer);
+                        console.log(error);
+                        reject(error);
+                    }
+                });
+            },
+            5000);
     });
     return promise;
 }
@@ -425,17 +439,18 @@ function createCertificate(): any {
     const pki: any = forge.pki;
     // generate a keypair and create an X.509v3 certificate
     const keys = pki.rsa.generateKeyPair(2048);
-    const cert = pki.createCertificate();
-    cert.publicKey = keys.publicKey;
-    cert.serialNumber = '01';
-    cert.validity.notBefore = new Date(Date.now());
-    cert.validity.notAfter = new Date(Date.now());
-    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+    const certificate = pki.createCertificate();
+    certificate.publicKey = keys.publicKey;
+    certificate.serialNumber = '01';
+    certificate.validity.notBefore = new Date(Date.now());
+    certificate.validity.notAfter = new Date(Date.now());
+    certificate.validity.notAfter.setFullYear(certificate.validity.notBefore.getFullYear() + 1);
     // self-sign certificate
-    cert.sign(keys.privateKey);
-    const fingerPrint = pki.getPublicKeyFingerprint(keys.publicKey, {encoding: 'hex', delimiter: ':'});
+    certificate.sign(keys.privateKey);
+    const cert = forge.pki.certificateToPem(certificate);
+    const fingerPrint = forge.md.sha1.create().update(forge.asn1.toDer(pki.certificateToAsn1(certificate)).getBytes()).digest().toHex();
     return {
-        cert: forge.pki.certificateToPem(cert),
+        cert,
         fingerPrint,
         key: forge.pki.privateKeyToPem(keys.privateKey)
     };

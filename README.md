@@ -5,13 +5,13 @@
 Azure IoT PCS CLI Overview
 ==========================
 
-Command Line Interface for deploying an IoT pre-configured solution into a
+Command Line Interface for deploying an IoT preconfigured solution into a
 user's subscription.
 
 This CLI has the ability to deploy two configurations of PCS solutions:
 
 1. Basic - deploys all resources to a single VM.
-2. Enterprise - deploys resources using Azure Container Service and Kubernetes across multiple VMs.
+2. Standard - deploys resources using Azure Container Service and Kubernetes across multiple VMs.
 
 Dependencies
 ============
@@ -34,18 +34,16 @@ Basic deployment provisions following resources:
 At the end of deployment, Remote Monitoring WebApp and all the microservices
 are ready for demo pursposes.
 
-## Enterprise
+## Standard
 
-The Enterprise deployment offers a production ready deployment that can be
+The Standard deployment offers a production ready deployment that can be
 scaled up or down as needed. It uses
 [Azure Container Service](https://azure.microsoft.com/en-us/services/container-service/)
-and [Kubernetes](https://kubernetes.io/) for orchestration. It also requires
-some manual steps in running commands through different CLIs like
-[az](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) and
-[kubectl](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+and [Kubernetes](https://kubernetes.io/) for orchestration. It would be nice to have installed
+[kubectl](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) for running commands on kubernetes
 in addition to ```pcs```.
 
-Enterprise deployment provisions following resources:
+Standard deployment provisions following resources:
 
 1. [Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
 2. [Azure Cosmos DB](https://docs.microsoft.com/en-us/azure/cosmos-db/create-documentdb-dotnet)
@@ -57,13 +55,8 @@ Enterprise deployment provisions following resources:
 How to use the CLI
 ==================
 
-## CLI setup
-
-1. Clone the project
-1. From a command prompt run: 
-    - `npm install` 
-    - `npm start`
-    - `npm link`
+## Install CLI
+`npm install iot-solutions -g`
 
 ## Basic Deployment
 
@@ -79,22 +72,11 @@ How to use the CLI
 Click on the link that is shown in the output window, it will take you to
 the Remote Monitoring WebApp
 
-## Enterprise Deployment
-
-### Dependendencies
-
-- [Install Azure CLI 2.0](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-
-> **Important** \
-\
-Make sure the path of az and kubectl are set in environment variables.
-You should be able to type 'az' or 'kubectl' in console window and see
-the help content.
+## Standard Deployment
 
 ### Deploy Azure Resources
 
-1. `pcs -t remotemonitoring -s enterprise`
+1. `pcs -t remotemonitoring -s standard`
 2. Follow the on-screen prompts
 3. The results of the deployment will be saved to a file named {deployment-name}-output.json 
 
@@ -119,58 +101,13 @@ the help content.
 }
 ```
 
-> **Important** \
-\
-To create a service principal, you must have permissions to register an \
-application with your Azure Active Directory(AAD) tenant, and to assign \
-the application to a role in your subscription. To see if you have the \
-required permissions, [check in the Portal](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#required-permissions).
-
-### Create a Container Service for Kubernetes
-
-1. `az login`
-2. `az account set --subscription {subscriptionId }` from step 3 of
-   [Deploy Azure Resources](README.md#deploy-azure-resources-1)
-3. `az acs create -n {myClusterName} -d {myDNSPrefix} -g {resouceGroup} -t kubernetes --generate-ssh-keys`
-   where resouceGroup from step 3 of
-   [Deploy Azure Resources](README.md#deploy-azure-resources-1)
-4. `az acs kubernetes get-credentials -g {myResorceGroupName} -n {myClusterName} --ssh-key-file {path to ssh key file to use}`
-
-### Deploy Docker images through Kubernetes
-
-To verify access test with `kubectl get nodes`
-
-1. `kubectl create -f .\remotemonitoring\scripts\nginx-ingress-controller.yaml`
-2. Go to your resource group on [portal.azure.com](http://portal.azure.com)
-   and set up friendly DNS name for Public IP address that got created in
-   step 3 of
-   [Create a Container Service for Kubernetes](README.md#create-a-container-service-for-kubernetes).
-   It will start with **{myClusterName}**. To confirm match the IP address
-   with "LoadBalancer Ingress" by running `kubectl describe svc nginx-ingress`
-3. Add actual values in the ConfigMap section in file
-   [all-in-one.yaml](https://github.com/Azure/pcs-cli/blob/master/remotemonitoring/scripts/all-in-one.yaml)
-   and
-   [deployment-configmap.yaml](https://github.com/Azure/pcs-cli/blob/master/remotemonitoring/scripts/individual/deployment-configmap.yaml).
-   Values to replace will be of format **"{...}"**. Some examples below.
-    * **{DNS}** with value from step 2
-    * **{IoT Hub connection string}**
-    * **{DocumentDB connection string}**
-4. `kubectl create -f .\remotemonitoring\scripts\all-in-one.yaml`
-
-> **Important** \
-\
-If your account doesn't have the Azure Active Directory (AAD) and subscription
-permissions to create a service principal, then the command generates an error
-similar to **Insufficient privileges to complete the operation**. \
-Also, when using **--generate-ssh-keys**, if one key already exists at
-`~/.ssh/id_rsa` then it will be used.
-
 ### Verify the Web UI and Microservices are deployed
 
 1. Click on the link that is shown in the output window, it will take you to
    the Remote Monitoring WebApp
-2. Go to {DNS}/hubmanager/v1/status to see HubManager microservice status
-3. Go to {DNS}/devices/v1/status to see Devices microservice status
+1. It can take upto 5 minutes for the webapp to be ready
+1. Go to {azurewebitesurl}/hubmanager/v1/status to see HubManager microservice status
+1. Go to {azurewebitesurl}/devices/v1/status to see Devices microservice status
 
 Configuration
 =============
@@ -180,7 +117,7 @@ Configuration
 To view Kubernetes dashboard, run the following command, which will start a local
 web proxy for your cluster (it will start a local server at http://127.0.0.1:8001/ui):
 
-`az acs kubernetes browse -g {myResourceGroupName} -n {myClusterName} --ssh-key-file {path to ssh file}`
+`kubectl proxy`
 
 ## CLI Options
 
@@ -198,9 +135,9 @@ Related
 * [Contributing and Development setup](CONTRIBUTING.md)
 
 
-[build-badge]: https://img.shields.io/travis/Azure/iot-pcs-cli.svg
-[build-url]: https://travis-ci.com/Azure/iot-pcs-cli
-[issues-badge]: https://img.shields.io/github/issues/azure/iot-pcs-cli.svg
-[issues-url]: https://github.com/azure/iot-pcs-cli/issues
-[gitter-badge]: https://img.shields.io/gitter/room/azure/iot-pcs.js.svg
-[gitter-url]: https://gitter.im/azure/iot-pcs
+[build-badge]: https://img.shields.io/travis/Azure/pcs-cli.svg
+[build-url]: https://travis-ci.org/Azure/pcs-cli
+[issues-badge]: https://img.shields.io/github/issues/azure/pcs-cli.svg
+[issues-url]: https://github.com/azure/pcs-cli/issues
+[gitter-badge]: https://img.shields.io/gitter/room/azure/iot-solutions.js.svg
+[gitter-url]: https://gitter.im/azure/iot-solutions
