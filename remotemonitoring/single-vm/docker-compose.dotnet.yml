@@ -133,6 +133,8 @@ services:
 
   storageadapter:
     image: azureiotpcs/pcs-storage-adapter-dotnet:testing
+    ports:
+      - "9022:9022"
     environment:
       - PCS_STORAGEADAPTER_DOCUMENTDB_CONNSTRING
       - PCS_AUTH_ISSUER
@@ -144,7 +146,7 @@ services:
   storageadapter_java:
     image: azureiotpcs/pcs-storage-adapter-java:testing
     ports:
-      - "9022:9022"
+      - "19022:9022"
     environment:
       - PCS_STORAGEADAPTER_DOCUMENTDB_CONNSTRING
       - PCS_AUTH_ISSUER
