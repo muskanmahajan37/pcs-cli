@@ -1,0 +1,32 @@
+{
+    "storageAdapter": [
+        {
+            "environment": "DotNetAPI",
+            "service": "http://vm-kseja.eastus.cloudapp.azure.com:9022/v1"
+        },
+        {
+            "environment": "JavaAPI",
+            "service": "http://vm-kseja.eastus.cloudapp.azure.com:19022/v1"
+        }
+    ],
+    "config": [
+        {
+            "environment": "DotNetAPI",
+            "service": "http://vm-kseja.eastus.cloudapp.azure.com/config/v1"
+        },
+        {
+            "environment": "JavaAPI",
+            "service": "http://vm-kseja.eastus.cloudapp.azure.com:9005/v1"
+        }
+    ],
+    "iotHubManager": [
+        {
+            "environment": "DotNetAPI",
+            "service": "http://vm-kseja.eastus.cloudapp.azure.com/iothubmanager/v1"
+        },
+        {
+            "environment": "JavaAPI",
+            "service": "http://vm-kseja.eastus.cloudapp.azure.com:9002/v1"
+        }
+    ]
+}

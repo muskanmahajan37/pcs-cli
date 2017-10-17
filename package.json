@@ -18,6 +18,16 @@
       "ts",
       "js"
     ],
+    "reporters": [
+      "default",
+      "./src/custom-reporter.js"
+    ],
+    "coverageDirectory": "./report",
+    "coverageReporters": [
+      "json",
+      "lcov",
+      "text"
+    ],
     "transform": {
       "^.+\\.(ts|tsx)$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },
@@ -45,7 +55,7 @@
     "@types/chalk": "^0.4.31",
     "@types/commander": "^2.9.1",
     "@types/inquirer": "0.0.35",
-    "@types/jest": "^19.2.4",
+    "@types/jest": "latest",
     "@types/js-yaml": "^3.9.1",
     "@types/node": "^7.0.29",
     "@types/node-forge": "^0.6.10",
@@ -61,10 +71,13 @@
   },
   "dependencies": {
     "@kubernetes/typescript-node": "^0.1.1",
+    "@types/chai": "^4.0.4",
+    "@types/request-promise": "latest",
     "azure": "^2.0.0-preview",
     "azure-arm-resource": "^2.0.0-preview",
     "azure-graph": "^2.2.0",
     "btoa": "^1.1.2",
+    "chai": "^4.1.2",
     "commander": "^2.9.0",
     "inquirer": "^3.1.0",
     "js-yaml": "^3.10.0",
@@ -73,6 +86,7 @@
     "ms-rest-azure": "^2.1.2",
     "node-fetch": "^1.7.3",
     "node-forge": "^0.7.1",
+    "request-promise": "^4.2.2",
     "ssh2": "^0.5.5"
   },
   "repository": {
