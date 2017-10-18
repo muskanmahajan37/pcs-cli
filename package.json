@@ -20,7 +20,7 @@
     ],
     "reporters": [
       "default",
-      "./src/custom-reporter.js"
+      "./testsuties/custom-reporter.js"
     ],
     "coverageDirectory": "./report",
     "coverageReporters": [

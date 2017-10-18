@@ -1,0 +1,22 @@
+[
+    {
+        "displayName": "StorageAdapter DotNet",
+        "serviceUrl": "http://huapcs2apitest17.azurewebsites.net/stroageadapter/v1",
+        "testSuite": "pcs-storage-adapter"
+    },
+    {
+        "displayName": "StorageAdapter Java",
+        "serviceUrl": "http:// vm-kseja.eastus.cloudapp.azure.com:19022/v1",
+        "testSuite": "pcs-storage-adapter"
+    },
+    {
+        "displayName": "Config DotNet",
+        "serviceUrl": "http://huapcs2apitest17.azurewebsites.net/config/v1",
+        "testSuite": "pcs-config"
+    },
+    {
+        "displayName": "IoTHubManager DotNet",
+        "serviceUrl": "http://huapcs2apitest17.azurewebsites.net/iothubmanager/v1",
+        "testSuite": "iothub-manager"
+    }
+]
