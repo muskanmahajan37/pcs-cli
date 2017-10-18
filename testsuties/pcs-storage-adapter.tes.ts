@@ -1,7 +1,7 @@
 import * as promiserequest from 'request-promise';
 import { expect, should } from 'chai';
 
-const config: any = require('./endpoints.json').storageAdapter;
+const config: any = require('./testsuites-config.json').storageAdapter;
 
 describe('test for pcs-storage-adapter:StatusController', () => {
 
