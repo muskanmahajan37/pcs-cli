@@ -1,3 +1,5 @@
+const config: any = require('./testsuites-config.json').storageAdapter;
+
 export class TestUtils {
 
     public static flattenJson(target: any, filters: string[] = []): string {
@@ -33,4 +35,10 @@ export class TestUtils {
         return result.sort().join(',');
     }
 
+    public static loadConfig(suiteName: string): object[] {
+        let config = require('./testsuites-config.json');
+        return config.filter(element => {
+            return element.testSuite === suiteName;
+        });
+    }
 }

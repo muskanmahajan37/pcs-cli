@@ -3,7 +3,7 @@ import { expect, should } from 'chai';
 
 const config: any = require('./testsuites-config.json').storageAdapter;
 
-describe('test for pcs-storage-adapter:StatusController', () => {
+xdescribe('test for pcs-storage-adapter:StatusController', () => {
 
     describe('GET    /v1/status ', () => {
         config.forEach((element) => {
@@ -20,7 +20,7 @@ describe('test for pcs-storage-adapter:StatusController', () => {
 
 });
 
-describe('test for pcs-storage-adapter:ValuesController', () => {
+xdescribe('test for pcs-storage-adapter:ValuesController', () => {
 
     beforeAll(() => {
         const promisesInit: object[] = [];
