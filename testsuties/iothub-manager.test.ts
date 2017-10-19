@@ -8,6 +8,7 @@ const should = require('chai').should();
 const services: any = TestUtils.loadConfig('iothub-manager');
 const dateTimeMatcher = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}/;
 const testDeviceIdPrefix = 'ApiTestDevice_';
+const jobIdPrefix = 'ApiTestJob-';
 
 describe('Status API', () => {
     describe('GET    /v1/status ', () => {
@@ -15,6 +16,7 @@ describe('Status API', () => {
             it(service.displayName, () => {
                 return rp.get(service.serviceUrl + '/v1/status').then((response) => {
                     const status = JSON.parse(response);
+                    // TODO: Java version does not include this property
                     expect(status.Name).to.equal('IoTHubManager');
                     expect(status.Status).to.equal('OK:Alive and well');
                     status.should.have.property('CurrentTime').to.match(dateTimeMatcher);
@@ -22,6 +24,7 @@ describe('Status API', () => {
                     status.should.have.property('UpTime').to.be.above(0);
                     status.should.have.property('Properties').to.be.an.instanceof(Object);
                     status.should.have.property('Dependencies').to.be.an.instanceof(Object);
+                    // TODO: Java version does not include this property
                     status.should.have.property('UID').to.match(/WebService..*/);
                     status.should.have.deep.property('$metadata', { '$uri': '/v1/status', '$type': 'Status;1' });
                 });
@@ -89,7 +92,7 @@ describe('Device API', () => {
                 let options = {
                     method: 'POST',
                     uri: service.serviceUrl + '/v1/devices',
-                    body:  {
+                    body: {
                         Id: deviceId,
                         Tags: {
                             Building: 'Building 40',
@@ -102,8 +105,8 @@ describe('Device API', () => {
                 return rp.post(options).then((device) => {
                     console.log('DEFAULT_TIMEOUT_INTERVAL: ', jasmine.DEFAULT_TIMEOUT_INTERVAL);
                     console.log(deviceId + ' created');
-                     // add some delay before running each test
-                    setTimeout(function(){
+                    // add some delay before running each test
+                    setTimeout(function () {
                         done();
                     }, 500);
                 });
@@ -144,7 +147,7 @@ describe('Device API', () => {
                 let options = {
                     method: 'POST',
                     uri: service.serviceUrl + '/v1/devices',
-                    body:  {
+                    body: {
                         Id: deviceId,
                         Tags: {
                             Building: 'Building 40',
@@ -184,9 +187,10 @@ describe('Device API', () => {
                     device.should.have.deep.property('$metadata', {
                         '$uri': '/v1/devices/' + deviceId,
                         '$type': 'Device;1',
-                        '$twin_uri': '/v1/devices/'+ deviceId + '/twin'
+                        '$twin_uri': '/v1/devices/' + deviceId + '/twin'
                     });
-                    device.should.have.property('Etag');
+                    // TODO: Java version will return ETag but DotNet version return Etag.
+                    device.should.have.property('ETag');
                     device.should.have.property('Id').to.be.equal(deviceId);
                     device.should.have.property('C2DMessageCount').to.be.above(-1);
                     device.should.have.property("Connected").to.be.a('boolean');
@@ -196,6 +200,7 @@ describe('Device API', () => {
                         deviceType: 'Simulated',
                         Floor: '1F'
                     });
+                    // TODO: Java version can return complete Reported properties.
                     device.should.have.deep.property('Properties').to.have.property('Reported', {});
                     device.should.have.deep.property('Properties').to.have.deep.property('Desired', {
                         Number: 4,
@@ -208,7 +213,7 @@ describe('Device API', () => {
         });
     });
 
-    describe('PUT /v1/devices/{id} ', () => {
+    fdescribe('PUT /v1/devices/{id} ', () => {
         services.forEach((service) => {
             let deviceId = testDeviceIdPrefix + uuid.v4();
             let deviceUri = service.serviceUrl + '/v1/devices/' + deviceId;
@@ -223,7 +228,7 @@ describe('Device API', () => {
                 let options = {
                     method: 'PUT',
                     uri: deviceUri,
-                    body:  {
+                    body: {
                         Id: deviceId,
                         Tags: {
                             Building: 'Building 40',
@@ -237,7 +242,7 @@ describe('Device API', () => {
                     device.should.have.deep.property('$metadata', {
                         '$uri': '/v1/devices/' + deviceId,
                         '$type': 'Device;1',
-                        '$twin_uri': '/v1/devices/'+ deviceId + '/twin'
+                        '$twin_uri': '/v1/devices/' + deviceId + '/twin'
                     });
                     device.should.have.property('Etag');
                     device.should.have.property('Id').to.be.equal(deviceId);
@@ -254,3 +259,153 @@ describe('Device API', () => {
         });
     });
 });
+
+xdescribe('Job API', () => {
+    describe('GET /v1/jobs ', () => {
+        services.forEach((service) => {
+            it(service.displayName, () => {
+                return rp.get(service.serviceUrl + '/v1/jobs').then((response) => {
+                    const jobs = JSON.parse(response);
+                    jobs.should.be.an.instanceof(Array);
+                });
+            });
+        });
+    });
+
+    describe('GET /v1/jobs ', () => {
+        services.forEach((service) => {
+            it(service.displayName, () => {
+                let queryString = '?jobType=4&jobStatus=3&pageSize=10';
+                return rp.get(service.serviceUrl + '/v1/jobs' + queryString).then((response) => {
+                    const jobs = JSON.parse(response);
+                    jobs.should.be.an.instanceof(Array);
+                });
+            });
+        });
+    });
+
+    describe('POST /v1/jobs ', () => {
+        services.forEach((service) => {
+            let batchId = uuid.v4();
+            let testDevices = [];
+
+            beforeAll(() => {
+                return createTestDevices(service.serviceUrl, batchId, 1).then(devices => {
+                    testDevices = devices;
+                })
+            });
+
+            afterAll(() => {
+                return clearTestDevices(service.serviceUrl, testDevices).then(() => {
+                    console.log('test devices cleared');
+                });
+            });
+
+            it('should create a twin job ' + service.displayName, () => {
+                let jobId = jobIdPrefix + uuid.v4();
+                let options = {
+                    method: 'POST',
+                    uri: service.serviceUrl + '/v1/jobs',
+                    body: {
+                        jobId: jobId,
+                        queryCondition: 'tags.BatchId=\'' + batchId + '\'',
+                        updateTwin: {
+                            tags: {
+                                Touched: true
+                            }
+                        }
+                    },
+                    json: true
+                };
+                console.log(options);
+                return rp(options).then(job => {
+                    job.should.have.property('jobId', jobId);
+                    job.should.have.property('type', 4);
+                    expect(job.status).to.be.within(0, 7);
+                    expect(job.maxExecutionTimeInSeconds).to.be.equal(0);
+                    // job.should.have.deep.property('updateTwin').to.have.deep.property('tags', { Touched: true });
+                    // job.should.have.deep.property('resultStatistics', {
+                    //     deviceCount: 0,
+                    //     failedCount: 0,
+                    //     succeededCount: 0,
+                    //     runningCount: 0,
+                    //     pendingCount: 0
+                    // });
+                }).catch(err => {
+                    console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
+                    let errObj = JSON.stringify(err);
+                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/)
+                });
+            });
+
+            it('should create a method job ' + service.displayName, () => {
+                let jobId = jobIdPrefix + uuid.v4();
+                let options = {
+                    method: 'POST',
+                    uri: service.serviceUrl + '/v1/jobs',
+                    body: {
+                        jobId: jobId,
+                        queryCondition: 'tags.BatchId=\'' + batchId + '\'',
+                        methodParameter: {
+                           name: "Reboot",
+                        //    responseTimeout: 5,
+                        //    connectionTimeout: 5,
+                        //    jsonPayload: '{\"foo6\": \"bar6\"}'
+                        }
+                    },
+                    json: true
+                };
+                console.log(options);
+                return rp(options).then(job => {
+                    job.should.have.property('jobId', jobId);
+                    job.should.have.property('type', 3);
+                    expect(job.status).to.be.within(0, 7);
+                    expect(job.maxExecutionTimeInSeconds).to.be.equal(0);
+                    // job.should.have.deep.property('updateTwin').to.have.deep.property('tags', { Touched: true });
+                    // job.should.have.deep.property('resultStatistics', {
+                    //     deviceCount: 0,
+                    //     failedCount: 0,
+                    //     succeededCount: 0,
+                    //     runningCount: 0,
+                    //     pendingCount: 0
+                    // });
+                }).catch(err => {
+                    console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
+                    let errObj = JSON.stringify(err);
+                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/)
+                });
+            });
+        });
+    });
+});
+
+function createTestDevices(serviceUrl: string, batchId: string, count: number): Promise<any[]> {
+    let promises = [];
+    for (let i = 0; i < count; i++) {
+        let deviceId = testDeviceIdPrefix + uuid.v4();
+        let options = {
+            method: 'POST',
+            uri: serviceUrl + '/v1/devices',
+            body: {
+                Id: deviceId,
+                Tags: {
+                    BatchId: batchId,
+                    Purpose: 'testing',
+                    Touched: false,
+                }
+            },
+            json: true
+        };
+        promises.push(rp(options));
+    }
+    return Promise.all(promises);
+}
+
+function clearTestDevices(serviceUrl: string, devices: object[]): Promise<void[]> {
+    let promises = [];
+    devices.forEach((device) => {
+        let deviceUri = serviceUrl +  '/v1/devices/' + device['Id'];
+        promises.push(rp.delete(deviceUri));
+    })
+    return Promise.all(promises);
+}
