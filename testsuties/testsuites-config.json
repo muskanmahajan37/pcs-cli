@@ -1,7 +1,7 @@
 [
     {
         "displayName": "StorageAdapter DotNet",
-        "serviceUrl": "http://huapcs2apitest17.azurewebsites.net:9022",
+        "serviceUrl": "http://vm-kseja.eastus.cloudapp.azure.com:9022",
         "testSuite": "pcs-storage-adapter"
     },
     {
