@@ -41,4 +41,11 @@ export class TestUtils {
             return element.testSuite === suiteName;
         });
     }
+
+    public static prepareTestError(testResultContext: any, errorMessage: string): any {
+        if (errorMessage && errorMessage.indexOf("at") > -1) {
+            testResultContext.errorMessage = errorMessage.substring(0, errorMessage.indexOf("at")).trim();
+        }
+        return testResultContext;
+    }
 }
