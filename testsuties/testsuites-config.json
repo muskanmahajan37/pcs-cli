@@ -15,8 +15,8 @@
         "testSuite": "pcs-config"
     },
     {
-        "displayName": "IoTHubManager Java",
-        "serviceUrl": "http://localhost:9002",
+        "displayName": "IoTHubManager DotNet",
+        "serviceUrl": "https://huapcs2apitest17.azurewebsites.net/iothubmanager",
         "testSuite": "iothub-manager"
     }
 ]
