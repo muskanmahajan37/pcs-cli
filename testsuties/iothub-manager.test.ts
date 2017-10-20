@@ -13,7 +13,7 @@ const jobIdPrefix = 'ApiTestJob-';
 describe('Status API', () => {
     describe('GET    /v1/status ', () => {
         services.forEach((service) => {
-            it(service.displayName, () => {
+            it(says('should return service status report', service), () => {
                 return rp.get(service.serviceUrl + '/v1/status').then((response) => {
                     const status = JSON.parse(response);
                     // TODO: Java version does not include this property
@@ -36,7 +36,7 @@ describe('Status API', () => {
 describe('Device API', () => {
     describe('GET /v1/devices ', () => {
         services.forEach((service) => {
-            it(service.displayName, () => {
+            it(says('should return all devices', service), () => {
                 return rp.get(service.serviceUrl + '/v1/devices').then((response) => {
                     const devices = JSON.parse(response);
                     devices.should.have.deep.property('$metadata', { '$uri': '/v1/devices', '$type': 'DeviceList;1' });
@@ -49,7 +49,7 @@ describe('Device API', () => {
 
     describe('POST /v1/devices/query ', () => {
         services.forEach((service) => {
-            it(service.displayName, () => {
+            it(says('should return device list when post query with parameters', service), () => {
                 let options = {
                     method: 'POST',
                     uri: service.serviceUrl + '/v1/devices/query',
@@ -69,10 +69,9 @@ describe('Device API', () => {
 
     describe('GET /v1/devices?query=<query> ', () => {
         services.forEach((service) => {
-            it(service.displayName, () => {
+            it(says('should return device list when querying by parameters in url', service), () => {
                 let query = 'deviceId!=\'\'';
                 let uri = service.serviceUrl + '/v1/devices?query=' + query;
-                console.log(uri);
                 return rp.get(uri).then((response) => {
                     const devices = JSON.parse(response);
                     devices.should.have.deep.property('$metadata', { '$uri': '/v1/devices', '$type': 'DeviceList;1' });
@@ -118,7 +117,7 @@ describe('Device API', () => {
                 })
             });
 
-            it(service.displayName, () => {
+            it(says('should return specific device by id successfully', service), () => {
                 return rp.get(deviceUri).then((response) => {
                     const device = JSON.parse(response);
                     device.should.have.property('Id', deviceId);
@@ -143,7 +142,7 @@ describe('Device API', () => {
                 })
             });
 
-            it(service.displayName, () => {
+            it(says('should create a new device successfully', service), () => {
                 let options = {
                     method: 'POST',
                     uri: service.serviceUrl + '/v1/devices',
@@ -183,14 +182,13 @@ describe('Device API', () => {
                 };
 
                 return rp(options).then((device) => {
-                    console.log(device);
                     device.should.have.deep.property('$metadata', {
                         '$uri': '/v1/devices/' + deviceId,
                         '$type': 'Device;1',
                         '$twin_uri': '/v1/devices/' + deviceId + '/twin'
                     });
                     // TODO: Java version will return ETag but DotNet version return Etag.
-                    device.should.have.property('ETag');
+                    device.should.have.property('Etag');
                     device.should.have.property('Id').to.be.equal(deviceId);
                     device.should.have.property('C2DMessageCount').to.be.above(-1);
                     device.should.have.property("Connected").to.be.a('boolean');
@@ -224,7 +222,7 @@ describe('Device API', () => {
                 })
             });
 
-            it(service.displayName, () => {
+            it(says('should create or update device successfully', service), () => {
                 let options = {
                     method: 'PUT',
                     uri: deviceUri,
@@ -262,8 +260,8 @@ describe('Device API', () => {
 
 describe('Job API', () => {
     describe('GET /v1/jobs ', () => {
-        services.forEach((service) => {
-            it(service.displayName, () => {
+        services.forEach(service => {
+            it(says('should return job list when query without any parameter', service), () => {
                 return rp.get(service.serviceUrl + '/v1/jobs').then((response) => {
                     const jobs = JSON.parse(response);
                     jobs.should.be.an.instanceof(Array);
@@ -274,7 +272,7 @@ describe('Job API', () => {
 
     describe('GET /v1/jobs?jobType={0}&jobStatus={1}&pageSize={3} ', () => {
         services.forEach((service) => {
-            it(service.displayName, () => {
+            it(says('should return job list when query by jobType and jobStatus', service), () => {
                 let queryString = '?jobType=4&jobStatus=3&pageSize=10';
                 return rp.get(service.serviceUrl + '/v1/jobs' + queryString).then((response) => {
                     const jobs = JSON.parse(response);
@@ -285,7 +283,7 @@ describe('Job API', () => {
     });
 
     describe('POST /v1/jobs ', () => {
-        services.forEach((service) => {
+        services.forEach(service => {
             let batchId = uuid.v4();
             let testDevices = [];
 
@@ -301,7 +299,7 @@ describe('Job API', () => {
                 });
             });
 
-            it('should create a twin job ' + service.displayName, () => {
+            it(says('should create a twin job', service), () => {
                 let jobId = jobIdPrefix + uuid.v4();
                 let options = {
                     method: 'POST',
@@ -317,7 +315,7 @@ describe('Job API', () => {
                     },
                     json: true
                 };
-                console.log(options);
+
                 return rp(options).then(job => {
                     job.should.have.property('jobId', jobId);
                     job.should.have.property('type', 4);
@@ -336,15 +334,15 @@ describe('Job API', () => {
                         let job = JSON.parse(response);
                         job.should.have.property('jobId', jobId);
                         job.should.have.deep.property('updateTwin').to.have.property('tags', { Touched: true });
-                    })
+                    });
                 }).catch(err => {
                     console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
                     let errObj = JSON.stringify(err);
-                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/)
+                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/);
                 });
             });
 
-            it('should create a method job ' + service.displayName, () => {
+            it(says('should create a method job', service), () => {
                 let jobId = jobIdPrefix + uuid.v4();
                 let options = {
                     method: 'POST',
@@ -361,9 +359,8 @@ describe('Job API', () => {
                     },
                     json: true
                 };
-                console.log(options);
+
                 return rp(options).then(job => {
-                    console.log(job);
                     job.should.have.property('jobId', jobId);
                     job.should.have.property('type', 3);
                     expect(job.status).to.be.within(0, 7);
@@ -385,7 +382,7 @@ describe('Job API', () => {
                 }).catch(err => {
                     console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
                     let errObj = JSON.stringify(err);
-                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/)
+                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/);
                 });
             });
         });
@@ -421,4 +418,8 @@ function clearTestDevices(serviceUrl: string, devices: object[]): Promise<void[]
         promises.push(rp.delete(deviceUri));
     })
     return Promise.all(promises);
+}
+
+function says(message: string , service: object) {
+    return message + ' (' + service['displayName'] + ')'
 }
