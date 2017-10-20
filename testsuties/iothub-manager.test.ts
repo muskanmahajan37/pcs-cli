@@ -213,7 +213,7 @@ describe('Device API', () => {
         });
     });
 
-    fdescribe('PUT /v1/devices/{id} ', () => {
+    describe('PUT /v1/devices/{id} ', () => {
         services.forEach((service) => {
             let deviceId = testDeviceIdPrefix + uuid.v4();
             let deviceUri = service.serviceUrl + '/v1/devices/' + deviceId;
@@ -260,7 +260,7 @@ describe('Device API', () => {
     });
 });
 
-xdescribe('Job API', () => {
+describe('Job API', () => {
     describe('GET /v1/jobs ', () => {
         services.forEach((service) => {
             it(service.displayName, () => {
@@ -272,7 +272,7 @@ xdescribe('Job API', () => {
         });
     });
 
-    describe('GET /v1/jobs ', () => {
+    describe('GET /v1/jobs?jobType={0}&jobStatus={1}&pageSize={3} ', () => {
         services.forEach((service) => {
             it(service.displayName, () => {
                 let queryString = '?jobType=4&jobStatus=3&pageSize=10';
@@ -322,15 +322,21 @@ xdescribe('Job API', () => {
                     job.should.have.property('jobId', jobId);
                     job.should.have.property('type', 4);
                     expect(job.status).to.be.within(0, 7);
-                    expect(job.maxExecutionTimeInSeconds).to.be.equal(0);
-                    // job.should.have.deep.property('updateTwin').to.have.deep.property('tags', { Touched: true });
-                    // job.should.have.deep.property('resultStatistics', {
-                    //     deviceCount: 0,
-                    //     failedCount: 0,
-                    //     succeededCount: 0,
-                    //     runningCount: 0,
-                    //     pendingCount: 0
-                    // });
+                    job.should.have.property('maxExecutionTimeInSeconds');
+                    job.should.have.deep.property('resultStatistics', {
+                        deviceCount: 0,
+                        failedCount: 0,
+                        succeededCount: 0,
+                        runningCount: 0,
+                        pendingCount: 0
+                    });
+                    // the job is just triggered and some properties is absent for some while
+                    // and will be readable later.
+                    return rp.get(service.serviceUrl + '/v1/jobs/' + jobId).then(response => {
+                        let job = JSON.parse(response);
+                        job.should.have.property('jobId', jobId);
+                        job.should.have.deep.property('updateTwin').to.have.property('tags', { Touched: true });
+                    })
                 }).catch(err => {
                     console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
                     let errObj = JSON.stringify(err);
@@ -357,18 +363,25 @@ xdescribe('Job API', () => {
                 };
                 console.log(options);
                 return rp(options).then(job => {
+                    console.log(job);
                     job.should.have.property('jobId', jobId);
                     job.should.have.property('type', 3);
                     expect(job.status).to.be.within(0, 7);
-                    expect(job.maxExecutionTimeInSeconds).to.be.equal(0);
-                    // job.should.have.deep.property('updateTwin').to.have.deep.property('tags', { Touched: true });
-                    // job.should.have.deep.property('resultStatistics', {
-                    //     deviceCount: 0,
-                    //     failedCount: 0,
-                    //     succeededCount: 0,
-                    //     runningCount: 0,
-                    //     pendingCount: 0
-                    // });
+                    job.should.have.deep.property('resultStatistics', {
+                        deviceCount: 0,
+                        failedCount: 0,
+                        succeededCount: 0,
+                        runningCount: 0,
+                        pendingCount: 0
+                    });
+                    job.should.have.property('maxExecutionTimeInSeconds');
+                    // the job is just triggered and some properties is absent for some while
+                    // and will be readable later.
+                    return rp.get(service.serviceUrl + '/v1/jobs/' + jobId).then(response => {
+                        let job = JSON.parse(response);
+                        job.should.have.property('jobId', jobId);
+                        job.should.have.deep.property('methodParameter').to.have.property('name', 'Reboot');
+                    })
                 }).catch(err => {
                     console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
                     let errObj = JSON.stringify(err);
