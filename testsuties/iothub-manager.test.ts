@@ -10,6 +10,9 @@ const dateTimeMatcher = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}/;
 const testDeviceIdPrefix = 'ApiTestDevice_';
 const jobIdPrefix = 'ApiTestJob-';
 
+// increase default timeout interval (5s) for each test.
+jasmine.DEFAULT_TIMEOUT_INTERVAL=10000;
+
 describe('Status API', () => {
     describe('GET    /v1/status ', () => {
         services.forEach((service) => {
@@ -261,7 +264,7 @@ describe('Device API', () => {
 describe('Job API', () => {
     describe('GET /v1/jobs ', () => {
         services.forEach(service => {
-            it(says('should return job list when query without any parameter', service), () => {
+            it(says('should return job list when querying without any parameter', service), () => {
                 return rp.get(service.serviceUrl + '/v1/jobs').then((response) => {
                     const jobs = JSON.parse(response);
                     jobs.should.be.an.instanceof(Array);
@@ -272,7 +275,7 @@ describe('Job API', () => {
 
     describe('GET /v1/jobs?jobType={0}&jobStatus={1}&pageSize={3} ', () => {
         services.forEach((service) => {
-            it(says('should return job list when query by jobType and jobStatus', service), () => {
+            it(says('should return job list when querying by jobType and jobStatus', service), () => {
                 let queryString = '?jobType=4&jobStatus=3&pageSize=10';
                 return rp.get(service.serviceUrl + '/v1/jobs' + queryString).then((response) => {
                     const jobs = JSON.parse(response);
