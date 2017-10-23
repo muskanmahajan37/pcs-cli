@@ -13,7 +13,7 @@ const jobIdPrefix = 'ApiTestJob-';
 // increase default timeout interval (5s) for each test.
 jasmine.DEFAULT_TIMEOUT_INTERVAL=10000;
 
-describe('Status API', () => {
+xdescribe('Status API', () => {
     describe('GET    /v1/status ', () => {
         services.forEach((service) => {
             it(says('should return service status report', service), () => {
@@ -36,7 +36,7 @@ describe('Status API', () => {
     });
 });
 
-describe('Device API', () => {
+xdescribe('Device API', () => {
     describe('GET /v1/devices ', () => {
         services.forEach((service) => {
             it(says('should return all devices', service), () => {
@@ -261,7 +261,7 @@ describe('Device API', () => {
     });
 });
 
-describe('Job API', () => {
+xdescribe('Job API', () => {
     describe('GET /v1/jobs ', () => {
         services.forEach(service => {
             it(says('should return job list when querying without any parameter', service), () => {

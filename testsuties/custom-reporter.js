@@ -1,6 +1,7 @@
 const mkdirp = require('mkdirp');
 const fs = require('fs');
 const path = require('path');
+const TestUtils = require('./testUtils')
 
 class CustomReporter {
   constructor(globalConfig, options) {
@@ -13,39 +14,58 @@ class CustomReporter {
 
   onTestResult(test, testResult, aggregatedResult) {
     if (testResult.numFailingTests < 1) return;
+    const failedResult = testResult.testResults.filter((m) => m.status == 'failed');
 
-    // add head message
-    const fstresult = JSON.parse(testResult.testResults[1].failureMessages[0]);
-    const testSuite = path.basename(testResult.testFilePath, '.ts');
-    let content = 'Display Name: ' + fstresult.service.displayName + '\r\n';
-    content += 'Service Url: ' + fstresult.service.serviceUrl + '\r\n';
-    content += 'Test Suite: ' + testSuite + '\r\n';
-    content += 'Reference Spec: ' + fstresult.service.displayName + '\r\n\r\n';
+    if (failedResult && failedResult.length > 0) {
+      const failedService = Array.from(new Set(failedResult.map((m) => m.title)));
+      failedService.forEach((m) => {
+        const service = TestUtils.loadConfigByDisplayName(m);
+        // add head message
+        let content = 'Display Name: ' + m + '\r\n';
+        content += 'Service Url: ' + service.serviceUrl + '\r\n';
+        content += 'Test Suite: ' + service.testSuite + '\r\n';
+        content += 'Reference Spec: ' + service.apiSpec + '\r\n\r\n';
 
-    // add failed test message
-    for (var index = 0; index < testResult.testResults.length; index++) {
-      var element = testResult.testResults[index];
-      if (element.status != 'failed') continue;
-      const messageContent = JSON.parse(element.failureMessages[0]);
-      content += messageContent.description + '\r\n';
-      content += messageContent.httpMethod + ' ' + messageContent.request.requestUrl + '\r\n';
-      if (messageContent.request.body) {
-        content += 'Request: ' + '\r\n' + messageContent.request.body;
-      }
-      content += 'Response: ' + '\r\n' + messageContent.reponse + '\r\n\r\n';
+        // add failed test message
+        failedResult.filter((n) => n.title == m).forEach((n => {
+          const messageContent = JSON.parse(n.failureMessages[0]);
+          const request = messageContent.request;
+          const response = messageContent.response;
+          content += messageContent.apiMessage.description + '\r\n';
+          content += 'route: ' + messageContent.apiMessage.apiRouteTemplate + '\r\n';
+          content += request.method + ' ' + request.url + '\r\n';
+          if (request.body) {
+            content += 'Content: ' + '\r\n' + JSON.stringify(request.body, null, 2) + '\r\n';
+          }
+          content += 'Response: \r\nStatus Code: ' + response.statusCode + '\r\n'
+          if (response.body) {
+            content += 'Content: ' + '\r\n' + JSON.stringify(JSON.parse(response.body), null, 2);
+          }
+          content += '\r\n\r\n';
+        }));
+
+        fs.appendFile(this._directory + '/' + m + '.err', content, (err) => {
+          if (err) throw err;
+        });
+      });
     }
-    fs.appendFile(this._directory + '/' + testSuite + '.err', content, (err) => {
-      if (err) throw err;
-    });
-
   }
 
   onRunComplete(contexts, results) {
     let content = '';
+    let titleSet = new Set();
+    let trc = [];
     results.testResults.forEach((element) => {
-      content += path.basename(element.testFilePath, '.test.ts') + element.numFailingTests + ' failed, ' +
-        element.numPassingTests + ' passes, ' +
-        (element.numFailingTests + element.numPassingTests) + ' total';
+      element.testResults.forEach((n) => {
+        titleSet.add(n.title);
+        trc.push(n);
+      });
+    });
+    titleSet.forEach((m) => {
+      const passed = trc.filter((n) => n.title == m && n.status == 'passed').length;
+      const failed = trc.filter((n) => n.title == m && n.status == 'failed').length;
+      const total = trc.filter((n) => n.title == m).length;
+      content += m + ': ' + passed + ' passed ' + failed + ' failed. total ' + total + '\r\n';
     });
     fs.appendFile(this._directory + '/summary.log', content, (err) => {
       if (err) throw err;
