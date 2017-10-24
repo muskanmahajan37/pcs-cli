@@ -13,6 +13,10 @@ TestUtils = {
         })[0];
     },
 
+    says: (message , service) => {
+        return message + '(' + service['displayName'] + ')';
+    },
+
     throwTestException: (request, response, error) => {
         let errorMessage = "";
         if (error.stack) {
@@ -24,7 +28,7 @@ TestUtils = {
         error.stack = JSON.stringify({
             errorMessage: errorMessage,
             request: request,
-            response: response
+            response: response.response
         });
         throw error;
     },
@@ -32,9 +36,6 @@ TestUtils = {
     prepareHttpRequest: (option, response) => {
         option.transform = (body, httpResponse, resolveWithFullResponse) => {
             response.response = httpResponse;
-            if (body) {
-                return JSON.parse(body);
-            }
             return body;
         }
     },

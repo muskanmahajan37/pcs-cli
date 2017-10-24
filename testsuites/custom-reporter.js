@@ -38,8 +38,12 @@ class CustomReporter {
             content += 'Content: ' + '\r\n' + JSON.stringify(request.body, null, 2) + '\r\n';
           }
           content += 'Response: \r\nStatus Code: ' + response.statusCode + '\r\n'
-          if (response.body) {
-            content += 'Content: ' + '\r\n' + JSON.stringify(JSON.parse(response.body), null, 2);
+          let body = response.body;
+          if (body) {
+            if(typeof body === 'string'){
+              body = JSON.parse(body);
+            }
+            content += 'Content: ' + '\r\n' + JSON.stringify(body, null, 2);
           }
           content += '\r\n\r\n';
         }));

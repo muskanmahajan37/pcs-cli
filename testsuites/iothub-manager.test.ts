@@ -1,11 +1,13 @@
 import * as rp from 'request-promise';
-import { expect } from 'chai';
+import { expect, should } from 'chai';
 import * as uuid from 'uuid';
-import { TestUtils } from './testUtils'
 
-const should = require('chai').should();
+should();
 
+const TestUtils = require('./testUtils');
+const says = TestUtils.says;
 const services: any = TestUtils.loadConfig('iothub-manager');
+
 const dateTimeMatcher = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}/;
 const testDeviceIdPrefix = 'ApiTestDevice_';
 const jobIdPrefix = 'ApiTestJob-';
@@ -13,12 +15,17 @@ const jobIdPrefix = 'ApiTestJob-';
 // increase default timeout interval (5s) for each test.
 jasmine.DEFAULT_TIMEOUT_INTERVAL=10000;
 
-xdescribe('Status API', () => {
+describe('Status API', () => {
     describe('GET    /v1/status ', () => {
-        services.forEach((service) => {
+        services.forEach(service => {
             it(says('should return service status report', service), () => {
-                return rp.get(service.serviceUrl + '/v1/status').then((response) => {
-                    const status = JSON.parse(response);
+                const options: any = {
+                    url: service.serviceUrl + '/v1/status',
+                    method: 'GET'
+                };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
+                return rp(options).then((status) => {
                     // TODO: Java version does not include this property
                     expect(status.Name).to.equal('IoTHubManager');
                     expect(status.Status).to.equal('OK:Alive and well');
@@ -30,21 +37,30 @@ xdescribe('Status API', () => {
                     // TODO: Java version does not include this property
                     status.should.have.property('UID').to.match(/WebService..*/);
                     status.should.have.deep.property('$metadata', { '$uri': '/v1/status', '$type': 'Status;1' });
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
     });
 });
 
-xdescribe('Device API', () => {
+describe('Device API', () => {
     describe('GET /v1/devices ', () => {
         services.forEach((service) => {
             it(says('should return all devices', service), () => {
-                return rp.get(service.serviceUrl + '/v1/devices').then((response) => {
-                    const devices = JSON.parse(response);
+                const options: any = {
+                    url: service.serviceUrl + '/v1/devices',
+                    method: 'GET'
+                };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
+                return rp(options).then(devices => {
                     devices.should.have.deep.property('$metadata', { '$uri': '/v1/devices', '$type': 'DeviceList;1' });
                     devices.should.have.property('continuationToken');
                     devices.should.have.property('items').to.be.an.instanceof(Array);
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
@@ -52,7 +68,7 @@ xdescribe('Device API', () => {
 
     describe('POST /v1/devices/query ', () => {
         services.forEach((service) => {
-            it(says('should return device list when post query with parameters', service), () => {
+            fit(says('should return device list when post query with parameters', service), () => {
                 let options = {
                     method: 'POST',
                     uri: service.serviceUrl + '/v1/devices/query',
@@ -61,10 +77,14 @@ xdescribe('Device API', () => {
                     ],
                     json: true
                 };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
                 return rp(options).then((devices) => {
                     devices.should.have.deep.property('$metadata', { '$uri': '/v1/devices', '$type': 'DeviceList;1' });
                     devices.should.have.property('continuationToken');
                     devices.should.have.property('items').to.be.an.instanceof(Array);
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
@@ -74,12 +94,19 @@ xdescribe('Device API', () => {
         services.forEach((service) => {
             it(says('should return device list when querying by parameters in url', service), () => {
                 let query = 'deviceId!=\'\'';
-                let uri = service.serviceUrl + '/v1/devices?query=' + query;
-                return rp.get(uri).then((response) => {
-                    const devices = JSON.parse(response);
+                const options: any = {
+                    url: service.serviceUrl + '/v1/devices?query=' + query,
+                    method: 'GET',
+                    json: true
+                };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
+                return rp(options).then((devices) => {
                     devices.should.have.deep.property('$metadata', { '$uri': '/v1/devices', '$type': 'DeviceList;1' });
                     devices.should.have.property('continuationToken');
                     devices.should.have.property('items').to.be.an.instanceof(Array);
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
@@ -105,7 +132,6 @@ xdescribe('Device API', () => {
                     json: true
                 };
                 return rp.post(options).then((device) => {
-                    console.log('DEFAULT_TIMEOUT_INTERVAL: ', jasmine.DEFAULT_TIMEOUT_INTERVAL);
                     console.log(deviceId + ' created');
                     // add some delay before running each test
                     setTimeout(function () {
@@ -121,20 +147,28 @@ xdescribe('Device API', () => {
             });
 
             it(says('should return specific device by id successfully', service), () => {
-                return rp.get(deviceUri).then((response) => {
-                    const device = JSON.parse(response);
+                const options: any = {
+                    url: deviceUri,
+                    method: 'GET',
+                    json: true
+                };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
+                return rp(options).then((device) => {
                     device.should.have.property('Id', deviceId);
                     device.should.have.deep.property('Tags', {
                         Building: 'Building 40',
                         deviceType: 'Simulated',
                         Floor: '1F'
                     });
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response.response, m);
                 });
             });
         });
     });
 
-    describe('POST /v1/devices ', () => {
+    xdescribe('POST /v1/devices ', () => {
         services.forEach((service) => {
             let deviceId = testDeviceIdPrefix + uuid.v4();
             let deviceUri = service.serviceUrl + '/v1/devices/' + deviceId;
@@ -183,7 +217,8 @@ xdescribe('Device API', () => {
                     },
                     json: true
                 };
-
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
                 return rp(options).then((device) => {
                     device.should.have.deep.property('$metadata', {
                         '$uri': '/v1/devices/' + deviceId,
@@ -208,13 +243,15 @@ xdescribe('Device API', () => {
                         Config: { TemperatureMeanValue: 70.0 },
                         Compus: 'Redmond',
                         IsNew: true
+                    }).catch(m => {
+                        TestUtils.throwTestException(options, response, m);
                     });
                 });
             });
         });
     });
 
-    describe('PUT /v1/devices/{id} ', () => {
+    xdescribe('PUT /v1/devices/{id} ', () => {
         services.forEach((service) => {
             let deviceId = testDeviceIdPrefix + uuid.v4();
             let deviceUri = service.serviceUrl + '/v1/devices/' + deviceId;
@@ -421,8 +458,4 @@ function clearTestDevices(serviceUrl: string, devices: object[]): Promise<void[]
         promises.push(rp.delete(deviceUri));
     })
     return Promise.all(promises);
-}
-
-function says(message: string , service: object) {
-    return message + ' (' + service['displayName'] + ')'
 }
