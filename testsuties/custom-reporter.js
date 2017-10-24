@@ -17,7 +17,7 @@ class CustomReporter {
     const failedResult = testResult.testResults.filter((m) => m.status == 'failed');
 
     if (failedResult && failedResult.length > 0) {
-      const failedService = Array.from(new Set(failedResult.map((m) => m.title)));
+      const failedService = Array.from(new Set(failedResult.map((m) => TestUtils.getServiceApiDescription(m.title).name)));
       failedService.forEach((m) => {
         const service = TestUtils.loadConfigByDisplayName(m);
         // add head message
@@ -27,12 +27,12 @@ class CustomReporter {
         content += 'Reference Spec: ' + service.apiSpec + '\r\n\r\n';
 
         // add failed test message
-        failedResult.filter((n) => n.title == m).forEach((n => {
+        failedResult.filter((n) => TestUtils.getServiceApiDescription(n.title).name == m).forEach((n => {
           const messageContent = JSON.parse(n.failureMessages[0]);
           const request = messageContent.request;
           const response = messageContent.response;
-          content += messageContent.apiMessage.description + '\r\n';
-          content += 'route: ' + messageContent.apiMessage.apiRouteTemplate + '\r\n';
+          content += TestUtils.getServiceApiDescription(n.title).description + '\r\n';
+          content += 'route: ' + n.ancestorTitles[n.ancestorTitles.length - 1] + '\r\n';
           content += request.method + ' ' + request.url + '\r\n';
           if (request.body) {
             content += 'Content: ' + '\r\n' + JSON.stringify(request.body, null, 2) + '\r\n';
@@ -57,14 +57,14 @@ class CustomReporter {
     let trc = [];
     results.testResults.forEach((element) => {
       element.testResults.forEach((n) => {
-        titleSet.add(n.title);
+        titleSet.add(TestUtils.getServiceApiDescription(n.title).name);
         trc.push(n);
       });
     });
     titleSet.forEach((m) => {
-      const passed = trc.filter((n) => n.title == m && n.status == 'passed').length;
-      const failed = trc.filter((n) => n.title == m && n.status == 'failed').length;
-      const total = trc.filter((n) => n.title == m).length;
+      const passed = trc.filter((n) => TestUtils.getServiceApiDescription(n.title).name == m && n.status == 'passed').length;
+      const failed = trc.filter((n) => TestUtils.getServiceApiDescription(n.title).name == m && n.status == 'failed').length;
+      const total = trc.filter((n) => TestUtils.getServiceApiDescription(n.title).name == m).length;
       content += m + ': ' + passed + ' passed ' + failed + ' failed. total ' + total + '\r\n';
     });
     fs.appendFile(this._directory + '/summary.log', content, (err) => {

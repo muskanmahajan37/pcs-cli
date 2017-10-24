@@ -13,7 +13,7 @@ TestUtils = {
         })[0];
     },
 
-    throwTestException: (apiMessage, request, response, error) => {
+    throwTestException: (request, response, error) => {
         let errorMessage = "";
         if (error.stack) {
             errorMessage = error.stack;
@@ -24,10 +24,33 @@ TestUtils = {
         error.stack = JSON.stringify({
             errorMessage: errorMessage,
             request: request,
-            response: response,
-            apiMessage: apiMessage,
+            response: response
         });
         throw error;
+    },
+
+    prepareHttpRequest: (option, response) => {
+        option.transform = (body, httpResponse, resolveWithFullResponse) => {
+            response.response = httpResponse;
+            if (body) {
+                return JSON.parse(body);
+            }
+            return body;
+        }
+    },
+
+    getServiceApiDescription: (content) => {
+        const match = /([^\(]+)\(([^\)]+)\)/.exec(content);
+        if (!match || match.length < 2) {
+            return {
+                name: content,
+                description: content
+            };
+        }
+        return {
+            name: match[2],
+            description: match[1]
+        };
     }
 }
 module.exports = TestUtils;
