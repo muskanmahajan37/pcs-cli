@@ -10,6 +10,7 @@
     "lint": "tslint -c tslint.json --project -p tsconfig.json 'src/**/*.{ts,tsx}'",
     "pretest": "npm run lint",
     "test": "jest",
+    "apitest": "node ./testsuites/testsuites-config.js && npm test",
     "build:live": "nodemon --exec npm run build:tsnode",
     "build:tsnode": "ts-node ./src/index.ts"
   },
