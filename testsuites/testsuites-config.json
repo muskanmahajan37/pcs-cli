@@ -6,12 +6,6 @@
         "apiSpec": "https://github.com/Azure/pcs-storage-adapter-dotnet/wiki/API-specs"
     },
     {
-        "displayName": "StorageAdapter Java",
-        "serviceUrl": "http://vm-kseja.eastus.cloudapp.azure.com:19022",
-        "testSuite": "pcs-storage-adapter",
-        "apiSpec": "https://github.com/Azure/pcs-storage-adapter-java/wiki/API-specs"
-    },
-    {
         "displayName": "Config DotNet",
         "serviceUrl": "https://huapcs2apitest17.azurewebsites.net/config",
         "testSuite": "pcs-config",
