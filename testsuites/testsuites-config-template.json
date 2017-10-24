@@ -1,0 +1,14 @@
+[
+    {
+        "displayName": "Config",
+        "serviceUrl": "{0}/config",
+        "testSuite": "pcs-config",
+        "apiSpec": "https://github.com/Azure/pcs-config-dotnet/wiki/API-specs"
+    },
+    {
+        "displayName": "IoTHubManager",
+        "serviceUrl": "{0}/iothubmanager",
+        "testSuite": "iothub-manager",
+        "apiSpec": "https://github.com/Azure/pcs-storage-adapter-dotnet/wiki/API-specs"
+    }
+]
