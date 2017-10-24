@@ -134,7 +134,7 @@ describe('Device API', () => {
                     json: true
                 };
                 return rp.post(options).then((device) => {
-                    console.log(deviceId + ' created');
+                    // console.log(deviceId + ' created');
                     // add some delay before running each test
                     setTimeout(function () {
                         done();
@@ -144,7 +144,7 @@ describe('Device API', () => {
 
             afterEach(() => {
                 return rp.delete(deviceUri).then(() => {
-                    console.log(deviceId + ' deleted');
+                    // console.log(deviceId + ' deleted');
                 })
             });
 
@@ -177,7 +177,7 @@ describe('Device API', () => {
 
             afterEach(() => {
                 return rp.delete(deviceUri).then(() => {
-                    console.log(deviceId + ' deleted');
+                    // console.log(deviceId + ' deleted');
                 })
             });
 
@@ -260,7 +260,7 @@ describe('Device API', () => {
 
             afterEach(() => {
                 return rp.delete(deviceUri).then(() => {
-                    console.log(deviceId + ' deleted');
+                    // console.log(deviceId + ' deleted');
                 })
             });
 
@@ -357,7 +357,7 @@ describe('Job API', () => {
 
             afterAll(() => {
                 return clearTestDevices(service.serviceUrl, testDevices).then(() => {
-                    console.log('test devices cleared');
+                    // console.log('test devices cleared');
                 });
             });
 

@@ -20,7 +20,10 @@ TestUtils = {
         const configFile = 'testsuites/testsuites-config.json';
 
         let deployments = [];
-        let files = fs.readdirSync('./deployments');
+        let files = [];
+        if (fs.existsSync('./deployments')){
+            files = fs.readdirSync('./deployments');
+        }
 
         files.forEach(f => {
             deployments.push({ name: f, value: require('../deployments/' + f), short: f } );
@@ -38,6 +41,7 @@ TestUtils = {
             type: 'input',
             message: 'please input service uri:'
         }];
+
         inquirer.prompt(chooseDeploymentQuestion).then(function (answers) {
             let choosedDeployment = answers.chooseDeployment;
             if(choosedDeployment){
