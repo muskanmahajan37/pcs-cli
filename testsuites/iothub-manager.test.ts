@@ -21,7 +21,8 @@ describe('Status API', () => {
             it(says('should return service status report', service), () => {
                 const options: any = {
                     url: service.serviceUrl + '/v1/status',
-                    method: 'GET'
+                    method: 'GET',
+                    json: true
                 };
                 const response: any = {};
                 TestUtils.prepareHttpRequest(options, response);
@@ -51,7 +52,8 @@ describe('Device API', () => {
             it(says('should return all devices', service), () => {
                 const options: any = {
                     url: service.serviceUrl + '/v1/devices',
-                    method: 'GET'
+                    method: 'GET',
+                    json: true
                 };
                 const response: any = {};
                 TestUtils.prepareHttpRequest(options, response);
@@ -68,7 +70,7 @@ describe('Device API', () => {
 
     describe('POST /v1/devices/query ', () => {
         services.forEach((service) => {
-            fit(says('should return device list when post query with parameters', service), () => {
+            it(says('should return device list when post query with parameters', service), () => {
                 let options = {
                     method: 'POST',
                     uri: service.serviceUrl + '/v1/devices/query',
@@ -168,7 +170,7 @@ describe('Device API', () => {
         });
     });
 
-    xdescribe('POST /v1/devices ', () => {
+    describe('POST /v1/devices ', () => {
         services.forEach((service) => {
             let deviceId = testDeviceIdPrefix + uuid.v4();
             let deviceUri = service.serviceUrl + '/v1/devices/' + deviceId;
@@ -243,15 +245,15 @@ describe('Device API', () => {
                         Config: { TemperatureMeanValue: 70.0 },
                         Compus: 'Redmond',
                         IsNew: true
-                    }).catch(m => {
-                        TestUtils.throwTestException(options, response, m);
                     });
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
     });
 
-    xdescribe('PUT /v1/devices/{id} ', () => {
+    describe('PUT /v1/devices/{id} ', () => {
         services.forEach((service) => {
             let deviceId = testDeviceIdPrefix + uuid.v4();
             let deviceUri = service.serviceUrl + '/v1/devices/' + deviceId;
@@ -276,6 +278,8 @@ describe('Device API', () => {
                     },
                     json: true
                 };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
                 return rp(options).then((device) => {
                     device.should.have.deep.property('$metadata', {
                         '$uri': '/v1/devices/' + deviceId,
@@ -292,19 +296,29 @@ describe('Device API', () => {
                         deviceType: 'Simulated',
                         Floor: '1F'
                     });
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
     });
 });
 
-xdescribe('Job API', () => {
+describe('Job API', () => {
     describe('GET /v1/jobs ', () => {
         services.forEach(service => {
             it(says('should return job list when querying without any parameter', service), () => {
-                return rp.get(service.serviceUrl + '/v1/jobs').then((response) => {
-                    const jobs = JSON.parse(response);
+                const options: any = {
+                    url: service.serviceUrl + '/v1/jobs',
+                    method: 'GET',
+                    json: true
+                };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
+                return rp(options).then((jobs) => {
                     jobs.should.be.an.instanceof(Array);
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
@@ -313,10 +327,18 @@ xdescribe('Job API', () => {
     describe('GET /v1/jobs?jobType={0}&jobStatus={1}&pageSize={3} ', () => {
         services.forEach((service) => {
             it(says('should return job list when querying by jobType and jobStatus', service), () => {
-                let queryString = '?jobType=4&jobStatus=3&pageSize=10';
-                return rp.get(service.serviceUrl + '/v1/jobs' + queryString).then((response) => {
-                    const jobs = JSON.parse(response);
+                const queryString = '?jobType=4&jobStatus=3&pageSize=10';
+                const options: any = {
+                    url: service.serviceUrl + '/v1/jobs' + queryString,
+                    method: 'GET',
+                    json: true
+                };
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
+                return rp(options).then(jobs => {
                     jobs.should.be.an.instanceof(Array);
+                }).catch(m => {
+                    TestUtils.throwTestException(options, response, m);
                 });
             });
         });
@@ -355,34 +377,40 @@ xdescribe('Job API', () => {
                     },
                     json: true
                 };
-
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
                 return rp(options).then(job => {
                     job.should.have.property('jobId', jobId);
                     job.should.have.property('type', 4);
                     expect(job.status).to.be.within(0, 7);
                     job.should.have.property('maxExecutionTimeInSeconds');
-                    job.should.have.deep.property('resultStatistics', {
-                        deviceCount: 0,
-                        failedCount: 0,
-                        succeededCount: 0,
-                        runningCount: 0,
-                        pendingCount: 0
-                    });
                     // the job is just triggered and some properties is absent for some while
                     // and will be readable later.
                     return rp.get(service.serviceUrl + '/v1/jobs/' + jobId).then(response => {
                         let job = JSON.parse(response);
                         job.should.have.property('jobId', jobId);
                         job.should.have.deep.property('updateTwin').to.have.property('tags', { Touched: true });
+                        job.should.have.deep.property('resultStatistics', {
+                            deviceCount: 0,
+                            failedCount: 0,
+                            succeededCount: 0,
+                            runningCount: 0,
+                            pendingCount: 0
+                        });
                     });
-                }).catch(err => {
+                }).catch(m => {
                     console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
-                    let errObj = JSON.stringify(err);
-                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/);
+                    let message = JSON.stringify(m);
+                    if (message.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/)) {
+                        return;
+                    }
+                    else {
+                        TestUtils.throwTestException(options, response, m);
+                    }
                 });
             });
 
-            it(says('should create a method job', service), () => {
+           it(says('should create a method job', service), () => {
                 let jobId = jobIdPrefix + uuid.v4();
                 let options = {
                     method: 'POST',
@@ -399,7 +427,8 @@ xdescribe('Job API', () => {
                     },
                     json: true
                 };
-
+                const response: any = {};
+                TestUtils.prepareHttpRequest(options, response);
                 return rp(options).then(job => {
                     job.should.have.property('jobId', jobId);
                     job.should.have.property('type', 3);
@@ -414,15 +443,19 @@ xdescribe('Job API', () => {
                     job.should.have.property('maxExecutionTimeInSeconds');
                     // the job is just triggered and some properties is absent for some while
                     // and will be readable later.
-                    return rp.get(service.serviceUrl + '/v1/jobs/' + jobId).then(response => {
-                        let job = JSON.parse(response);
+                    return rp.get(service.serviceUrl + '/v1/jobs/' + jobId).then(job => {
                         job.should.have.property('jobId', jobId);
                         job.should.have.deep.property('methodParameter').to.have.property('name', 'Reboot');
                     })
-                }).catch(err => {
+                }).catch(m => {
                     console.log('Warning: ThrottlingMaxActiveJobCountExceeded! Test Skipped');
-                    let errObj = JSON.stringify(err);
-                    errObj.should.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/);
+                    let message = JSON.stringify(m);
+                    if (message.match(/.*ErrorCode.*ThrottlingMaxActiveJobCountExceeded.*/)) {
+                        return;
+                    }
+                    else {
+                        TestUtils.throwTestException(options, response, m);
+                    }
                 });
             });
         });
