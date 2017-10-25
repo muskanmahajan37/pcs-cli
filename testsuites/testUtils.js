@@ -21,12 +21,12 @@ TestUtils = {
 
         let deployments = [];
         let files = [];
-        if (fs.existsSync('./deployments')){
+        if (fs.existsSync('./deployments')) {
             files = fs.readdirSync('./deployments');
         }
 
         files.forEach(f => {
-            deployments.push({ name: f, value: require('../deployments/' + f), short: f } );
+            deployments.push({ name: f, value: require('../deployments/' + f), short: f });
         });
         deployments.push({ name: 'Will input target service uri...', value: null, short: 'none' });
 
@@ -44,13 +44,13 @@ TestUtils = {
 
         inquirer.prompt(chooseDeploymentQuestion).then(function (answers) {
             let choosedDeployment = answers.chooseDeployment;
-            if(choosedDeployment){
+            if (choosedDeployment) {
                 configTemplate.forEach(service => {
                     service.serviceUrl = service.serviceUrl.replace('{0}', choosedDeployment.website);
                 });
                 fs.writeFileSync(configFile, JSON.stringify(configTemplate, null, 2));
             } else {
-                inquirer.prompt(inputServiceUriQuestion).then(function(answer){
+                inquirer.prompt(inputServiceUriQuestion).then(function (answer) {
                     configTemplate.forEach(service => {
                         service.serviceUrl = service.serviceUrl.replace('{0}', answer.inputServiceUri);
                     });
@@ -60,7 +60,7 @@ TestUtils = {
         });
     },
 
-    says: (message , service) => {
+    says: (message, service) => {
         return message + '(' + service['displayName'] + ')';
     },
 
