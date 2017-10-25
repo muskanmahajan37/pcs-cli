@@ -35,12 +35,16 @@ class CustomReporter {
           content += 'route: ' + n.ancestorTitles[n.ancestorTitles.length - 1] + '\r\n';
           content += request.method + ' ' + request.url + '\r\n';
           if (request.body) {
-            content += 'Content: ' + '\r\n' + JSON.stringify(request.body, null, 2) + '\r\n';
+            let requestBody = request.body;
+            if (typeof requestBody == 'object') {
+              requestBody = JSON.stringify(requestBody, null, 2);
+            }
+            content += 'request body: ' + requestBody + '\r\n';
           }
           content += 'Response: \r\nStatus Code: ' + response.statusCode + '\r\n'
           let body = response.body;
           if (body) {
-            if(typeof body === 'string'){
+            if (typeof body === 'string') {
               body = JSON.parse(body);
             }
             content += 'Content: ' + '\r\n' + JSON.stringify(body, null, 2);
