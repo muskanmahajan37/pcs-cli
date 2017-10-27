@@ -9,6 +9,9 @@ const services: any = TestUtils.loadConfig('pcs-config');
 
 const dateTimeMatcher = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}/;
 
+// increase default timeout interval (5s) for each test.
+jasmine.DEFAULT_TIMEOUT_INTERVAL=10000;
+
 describe('Status API', () => {
     describe('GET    /v1/status ', () => {
         services.forEach(service => {
