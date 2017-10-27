@@ -33,7 +33,7 @@ class CustomReporter {
           const response = messageContent.response;
           content += TestUtils.getServiceApiDescription(n.title).description + '\r\n';
           content += 'route: ' + n.ancestorTitles[n.ancestorTitles.length - 1] + '\r\n';
-          content += request.method + ' ' + request.url + '\r\n';
+          content += request.method + ' ' + (request.url || request.uri) + '\r\n';
           if (request.body) {
             let requestBody = request.body;
             if (typeof requestBody == 'object') {
