@@ -92,7 +92,7 @@ describe('Device API', () => {
         });
     });
 
-    describe('GET /v1/devices?query=<query> ', () => {
+    describe('GET /v1/devices?query={string} ', () => {
         services.forEach((service) => {
             it(says('should return device list when querying by parameters in url', service), () => {
                 let query = 'deviceId!=\'\'';
@@ -328,7 +328,7 @@ describe('Job API', () => {
         });
     });
 
-    describe('GET /v1/jobs?jobType={0}&jobStatus={1}&pageSize={3} ', () => {
+    describe('GET /v1/jobs?jobType={int}&jobStatus={int}&pageSize={int} ', () => {
         services.forEach((service) => {
             it(says('should return job list when querying by jobType and jobStatus', service), () => {
                 const queryString = '?jobType=4&jobStatus=3&pageSize=10';
@@ -344,6 +344,67 @@ describe('Job API', () => {
                 }).catch(m => {
                     TestUtils.throwTestException(options, response, m);
                 });
+            });
+        });
+    });
+
+    describe('GET /v1/jobs/{jobId}?includeDeviceDetails={bool}&deviceJobStatus={int}', () => {
+        services.forEach(service => {
+            let firstJob = null;
+            beforeAll(() => {
+               const options: any = {
+                    url: service.serviceUrl + '/v1/jobs',
+                    method: 'GET',
+                    json: true
+                };
+                return rp(options).then(jobs => {
+                    if(jobs.length>0){
+                        firstJob = jobs[0];
+                    }
+                }).catch(m => {
+                    assert.fail(m);
+                });
+            });
+
+            it(says('should get single job without device jobs', service), () => {
+                if(firstJob) {
+                    let jobId = firstJob.jobId;
+                    let jobUri = service.serviceUrl + '/v1/jobs/' + jobId;
+                    let promises = [];
+                    const options: any = {
+                        url: jobUri,
+                        method: 'GET',
+                        json: true
+                    };
+                    const response: any = {};
+                    TestUtils.prepareHttpRequest(options, response);
+                    return rp(options).then(job => {
+                        job.should.have.property('jobId', jobId);
+                        job.should.not.have.property('Devices');
+                    }).catch(m => {
+                        TestUtils.throwTestException(options, response, m);
+                    });
+                }
+            });
+
+            it(says('should get single job with device jobs when query with \'includeDeviceDetails=true\'', service), () => {
+                if(firstJob) {
+                    let jobId = firstJob.jobId;
+                    let jobUri = service.serviceUrl + '/v1/jobs/' + jobId;
+                    const options: any = {
+                        url: jobUri + '?includeDeviceDetails=true&deviceJobStatus=4',
+                        method: 'GET',
+                        json: true
+                    };
+                    const response: any = {};
+                    TestUtils.prepareHttpRequest(options, response);
+                    return rp(options).then(job => {
+                        job.should.have.property('jobId', jobId);
+                        job.should.have.deep.property('Devices').to.be.an.instanceof(Array);
+                    }).catch(m => {
+                        TestUtils.throwTestException(options, response, m);
+                    });
+                }
             });
         });
     });
@@ -391,7 +452,9 @@ describe('Job API', () => {
                     // job.should.have.property('maxExecutionTimeInSeconds');
                     // the job is just triggered and some properties is absent for some while
                     // and will be readable later.
-                    return rp.get(service.serviceUrl + '/v1/jobs/' + jobId).then(response => {
+                    const promises: Array<any> = [];
+                    let jobUri = service.serviceUrl + '/v1/jobs/' + jobId;
+                    rp.get(jobUri).then(response => {
                         let job = JSON.parse(response);
                         job.should.have.property('jobId', jobId);
                         job.should.have.deep.property('updateTwin').to.have.property('tags', { Touched: true });
