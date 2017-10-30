@@ -45,7 +45,9 @@ class CustomReporter {
           let body = response.body;
           if (body) {
             if (typeof body === 'string') {
-              body = JSON.parse(body);
+              try {
+                body = JSON.parse(body);
+              } catch(err) {}
             }
             content += 'Content: ' + '\r\n' + JSON.stringify(body, null, 2);
           }
