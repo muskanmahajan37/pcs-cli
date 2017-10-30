@@ -13,8 +13,9 @@ git fetch
 git checkout api_test
 ```
 
-2. Rebuild the pcs-cli command
+2. Install modules and rebuild the pcs-cli command
 ```
+npm install
 npm start
 ```
 
